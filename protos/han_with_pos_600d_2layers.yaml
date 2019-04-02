@@ -1,0 +1,82 @@
+_data :
+  data_root: /data/wujipeng/ec/data/static/
+  class: utils.dataset.ec.ECDataset
+  settings:
+    vocab_root: /data/wujipeng/ec/data/raw_data
+    batch_size: 16
+
+_model :
+  model_root : /data/wujipeng/ec/model/
+  name : han_with_pos_600d
+  class: models.han.han.HierarchicalAttentionNetwork
+  settings :
+    word_model:
+      class: WordAttention
+      args:
+        vocab_size: 23071
+        embedding_dim: 300
+        batch_size: 16
+        sequence_length: 41
+        rnn_size: 300
+        rnn_layers: 2
+        dropout: 0.5
+    sentence_model:
+      class: SentenceAttentionWithPosition
+      args:
+        batch_size: 16
+        word_rnn_size: 300
+        rnn_size: 300
+        rnn_layers: 2
+        pos_size: 103
+        pos_embedding_dim: 300
+        pos_embedding_file: /data/wujipeng/ec/data/embedding/pos_embedding.pkl
+        dropout: 0.5
+        fix_pos: True
+    vocab_size: 23071
+    num_classes: 2
+    embedding_dim: 300
+    dropout: 0.3
+    fix_embed: False
+
+_train :
+  debug_level: 0 # 0: 用test数据 1: 重新分配数据
+  criterion :
+    class : torch.nn.CrossEntropyLoss
+    args :
+      reduction : mean
+      ignore_index: -100
+  clip_grad_norm : False
+  grad_clip_value : 1
+  optimizer :
+    class : torch.optim.Adam
+    args :
+      lr : 3.e-4
+      betas: [0.9, 0.999]
+      eps: 1.e-8
+  pretrain : True
+  pretrained_file : /data/wujipeng/ec/data/embedding/sougou_embedding300d.pkl
+  max_epoch : 100
+  batch_size : 16
+  early_stopping_rounds : 5
+  disp_freq : 15
+  eval_freq : 119
+  save_freq : 119
+  finetune: True
+  metrics:
+    class: metrics.ec.ec.ECMetrics
+    args:
+      ignore_index: -100
+  statistics:
+    class: statistics.ec.ec.ECStatistics
+
+_eval :
+  batch_size : 16
+  metrics :
+    class : metrics.ec.han.ECAMetrics
+    settings :
+      average : binary
+      ignore_index: -100
+  statistics :
+    class : statistics.ec.ec.ECAStatistics
+    settings :
+      real_file : /home/wujipeng/data/ec/data/real.npz
