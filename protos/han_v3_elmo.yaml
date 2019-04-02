@@ -1,13 +1,13 @@
 _data :
-  data_root: /data/wujipeng/ec/data/ltp_static/
+  data_root: /data10T/data/wujipeng/ec/data/ltp_static/
   class: utils.dataset.elmo.ELMoECDataset
   settings:
-    elmo_embed_file: '/data/wujipeng/ec/data/embedding/elmo_sent_embedding1024d.pkl'
-    kw_embed_file: '/data/wujipeng/ec/data/embedding/elmo_kw_embedding1024d.pkl'
+    elmo_embed_file: '/data10T/data/wujipeng/ec/data/embedding/elmo_sent_embedding1024d.pkl'
+    kw_embed_file: '/data10T/data/wujipeng/ec/data/embedding/elmo_kw_embedding1024d.pkl'
     collate_fn: avg_collate_fn
 
 _model :
-  model_root : /data/wujipeng/ec/model/
+  model_root : /data10T/data/wujipeng/ec/model/
   name : han_v3_elmo
   class: models.han.han.HierarchicalAttentionNetworkV3ELMo
   settings :
@@ -20,7 +20,7 @@ _model :
         rnn_layers: 2
         pos_size: 103
         pos_embedding_dim: 300
-        pos_embedding_file: /data/wujipeng/ec/data/embedding/pos_embedding.pkl
+        pos_embedding_file: /data10T/data/wujipeng/ec/data/embedding/pos_embedding.pkl
         dropout: 0.5
         fix_pos: True
     elmo_dim: 1024
@@ -60,7 +60,7 @@ _train :
     class: statistics.ec.ec.ECStatistics
 
 _eval :
-  eval_root: /data/wujipeng/ec/eval/
+  eval_root: /data10T/data/wujipeng/ec/eval/
   debug_level: 1 # 0: 用test数据 1: 重新分配数据
   batch_size : 16
   metrics:

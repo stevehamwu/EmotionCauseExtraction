@@ -1,12 +1,12 @@
 _data :
-  data_root: /data/wujipeng/ec/data/ltp_static/
+  data_root: /data10T/data/wujipeng/ec/data/ltp_static/
   class: utils.dataset.memnet.MECDataset
   settings:
-    vocab_root: /data/wujipeng/ec/data/raw_data/memnet_ltp_vocab.txt
+    vocab_root: /data10T/data/wujipeng/ec/data/raw_data/memnet_ltp_vocab.txt
     batch_size: 16
 
 _model :
-  model_root : /data/wujipeng/ec/model/
+  model_root : /data10T/data/wujipeng/ec/model/
   name : memnet
   class: models.memnet.memnet.MemN2N
   settings :
@@ -37,7 +37,7 @@ _train :
 #      betas: [0.9, 0.999]
 #      eps: 1.e-8
   pretrain : True
-  pretrained_file : /data/wujipeng/ec/data/embedding/memnet_embedding20d.pkl
+  pretrained_file : /data10T/data/wujipeng/ec/data/embedding/memnet_embedding20d.pkl
   max_epoch : 100
   batch_size : 16
   early_stopping_rounds : 10
@@ -56,7 +56,7 @@ _train :
     class: statistics.ec.memnet.MECStatistics
 
 _eval :
-  eval_root: /data/wujipeng/ec/eval/
+  eval_root: /data10T/data/wujipeng/ec/eval/
   debug_level: 1 # 0: 用test数据 1: 重新分配数据
   batch_size : 16
   metrics:

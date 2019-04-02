@@ -1,12 +1,12 @@
 _data :
-  data_root: /data/wujipeng/ec/data/static/
+  data_root: /data10T/data/wujipeng/ec/data/static/
   class: utils.dataset.ec.ECDataset
   settings:
-    vocab_root: /data/wujipeng/ec/data/raw_data
+    vocab_root: /data10T/data/wujipeng/ec/data/raw_data
     batch_size: 16
 
 _model :
-  model_root : /data/wujipeng/ec/model/
+  model_root : /data10T/data/wujipeng/ec/model/
   name : han_v3_wiki_32b
   class: models.han.han.HierarchicalAttentionNetworkV3
   settings :
@@ -29,7 +29,7 @@ _model :
         rnn_layers: 2
         pos_size: 103
         pos_embedding_dim: 300
-        pos_embedding_file: /data/wujipeng/ec/data/embedding/pos_embedding.pkl
+        pos_embedding_file: /data10T/data/wujipeng/ec/data/embedding/pos_embedding.pkl
         dropout: 0.5
         fix_pos: True
     vocab_size: 23070
@@ -55,7 +55,7 @@ _train :
       betas: [0.9, 0.999]
       eps: 1.e-8
   pretrain : True
-  pretrained_file : /data/wujipeng/ec/data/embedding/wiki_embedding300d.pkl
+  pretrained_file : /data10T/data/wujipeng/ec/data/embedding/wiki_embedding300d.pkl
   max_epoch : 100
   batch_size : 32
   early_stopping_rounds : 5
@@ -71,7 +71,7 @@ _train :
     class: statistics.ec.ec.ECStatistics
 
 _eval :
-  eval_root: /data/wujipeng/ec/eval/
+  eval_root: /data10T/data/wujipeng/ec/eval/
   debug_level: 1 # 0: 用test数据 1: 重新分配数据
   batch_size : 32
   metrics:
