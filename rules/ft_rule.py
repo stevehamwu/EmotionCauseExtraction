@@ -42,13 +42,13 @@ def rule1(f, clauses, natures, K, strict=True):
                 c_s, c_e = rfind_word('v', FN, 0, i_s + 1)
                 if c_s > -1 and i_s > 1:
                     C = F[c_s: c_e + 1]
-                    return ('F', I, E, C)
+                    return 'F', I, E, C
                 else:
                     # 在前一句找情感原因
                     c_s, c_e = rfind_word('v', BN)
                     if c_s > -1 and len(B) - c_e + i_s > 1:
                         C = B[c_s: c_e + 1]
-                        return ('B', I, E, C)
+                        return 'B', I, E, C
     return
 
 
@@ -83,7 +83,7 @@ def rule2(f, clauses, natures, K, strict=True):
                     if e_s > -1:
                         E = B[e_s: e_e+1]
                 if e_s > -1:
-                    return ('F', I, E, C)
+                    return 'F', I, E, C
         else:
             #在前一句找线索词
             i_s, i_e = find_word(word, B, strict=True)
@@ -97,13 +97,13 @@ def rule2(f, clauses, natures, K, strict=True):
                     c_s, c_e = find_word('v', BN, i_e)
                     if c_s > -1 and find_word('v', BN, i_e)[0] > -1:
                         C = B[c_s: c_e+1]
-                        return ('B', I, E, C)
+                        return 'B', I, E, C
                     else:
                         # 在当前句找情感原因
                         c_s, c_e = find_word('v', FN, 0, k_s)
                         if c_s > -1 and find_word('v', FN, 0, k_s)[0] > -1:
                             C = F[c_s: c_e+1]
-                            return ('F', I, E, C)
+                            return 'F', I, E, C
     return
 
 
@@ -129,7 +129,7 @@ def rule3(f, clauses, natures, K, strict=True):
                 e_s, e_e = find_word('n', FN, 0, k_s+1)
                 E = F[e_s: e_e+1]
                 if e_s > -1:
-                    return ('B', I, E, C)
+                    return 'B', I, E, C
     return
 
 
@@ -162,13 +162,13 @@ def rule4(f, clauses, natures, K, strict=True):
                 c_s, c_e = find_word('v', FN, i_e)
                 if c_s > -1 and len(F) - i_e > 1:
                     C = F[c_s: c_e + 1]
-                    return ('F', I, E, C)
+                    return 'F', I, E, C
                 else:
                     # 在下一句找情感原因
                     c_s, c_e = find_word('v', AN)
                     if c_s > -1 and len(F) - i_e + c_s > 1:
                         C = A[c_s: c_e + 1]
-                        return ('A', I, E, C)
+                        return 'A', I, E, C
     return
 
 
@@ -196,7 +196,7 @@ def rule5(f, clauses, natures, K, strict=True):
                 c_s, c_e = find_word('nvn', AN, i_e)
                 if c_s > -1:
                     C = A[c_s: c_e + 1]
-                    return ('A', I, E, C)
+                    return 'A', I, E, C
     return
 
 
@@ -220,7 +220,7 @@ def rule9(f, clauses, natures, K, strict=True):
                 e_s, e_e = rfind_word('n', FN, 0, i_s + 1)
                 if e_s > -1:
                     E = F[e_s: e_e + 1]
-                    return ('F', I, E, C)
+                    return 'F', I, E, C
     return
 
 
@@ -249,7 +249,7 @@ def rule10(f, clauses, natures, K, strict=True):
                     i_s, i_e = find_word('的', F, e_e, c_s + 1)
                     if i_s > -1:
                         I = '的'
-                        return ('F', I, E, C)
+                        return 'F', I, E, C
     return
 
 
@@ -268,7 +268,7 @@ def rule11(f, clauses, natures, K, strict=True):
         e_s, e_e = find_word('n', FN, k_e)
         if e_s > -1:
             E = F[e_s: e_e + 1]
-            return ('F', '', E, C)
+            return 'F', '', E, C
     return
 
 
@@ -287,7 +287,7 @@ def rule14(f, clauses, natures, K, strict=True):
         c_s, c_e = rfind_word('v', BN)
         if c_s > -1 and rfind_word('n', BN)[0] > -1:
             C = B[c_s: c_e + 1]
-            return ('B', '', E, C)
+            return 'B', '', E, C
     return
 
 
@@ -306,5 +306,5 @@ def rule15(f, clauses, natures, K, strict=True):
         c_s, c_e = rfind_word('v', BN, e_e)
         if c_s > -1:
             C = B[c_s: c_e + 1]
-            return ('B', '', E, C)
-
+            return 'B', '', E, C
+    return

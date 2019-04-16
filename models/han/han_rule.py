@@ -15,39 +15,29 @@ from .word_model import *
 from .sentence_model import *
 
 
-class HierarchicalAttentionNetworkV3Rule(nn.Module):
+# HierarchicalAttentionNetworkV3
+class HierarchicalAttentionNetworkRule(nn.Module):
     def __init__(self,
                  vocab_size,
                  num_classes,
-                 rule_classes,
                  embedding_dim,
                  word_model,
                  sentence_model,
                  dropout=0.5,
                  fix_embed=True,
                  name='HAN'):
-        super(HierarchicalAttentionNetworkV3Rule, self).__init__()
+        super(HierarchicalAttentionNetworkRule, self).__init__()
         self.word_rnn_size = word_model['args']['rnn_size']
         self.sentence_rnn_size = sentence_model['args']['rnn_size']
         self.num_classes = num_classes
-        self.rule_classes = rule_classes
         self.fix_embed = fix_embed
         self.name = name
 
         self.Embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         self.word_rnn = eval(word_model['class'])(**word_model['args'])
         self.sentence_rnn = eval(sentence_model['class'])(**sentence_model['args'])
-        self.fc1 = nn.Linear(2 * self.word_rnn_size + 2 * self.sentence_rnn_size, num_classes)
-        self.dropout1 = nn.Dropout(dropout)
-        self.attention = NonLinearAttention(2 * self.sentence_rnn_size)
-        self.fc2 = nn.Linear(2 * self.word_rnn_size + 2 * self.sentence_rnn_size, num_classes)
-        self.dropout2 = nn.Dropout(dropout)
-        # self.fc = nn.Sequential(
-        #     nn.Linear(2 * self.sentence_rnn_size, linear_hidden_dim),
-        #     nn.ReLU(inplace=True),
-        #     nn.Dropout(dropout),
-        #     nn.Linear(linear_hidden_dim, num_classes)
-        # )
+        self.fc = nn.Linear(2 * self.word_rnn_size + 2 * self.sentence_rnn_size, num_classes)
+        self.dropout = nn.Dropout(dropout)
 
     def init_weights(self, embeddings):
         if embeddings is not None:
@@ -59,14 +49,20 @@ class HierarchicalAttentionNetworkV3Rule(nn.Module):
 
             # self.Embedding = self.Embedding.from_pretrained(embeddings, padding_idx=0, freeze=self.fix_embed)
 
-    def forward(self, sentences, keywords, poses):
+    def forward(self, sentences, keywords, poses, masks=None):
+        if masks is None:
+            masks = torch.ones_like(sentences)
+        # else:
+        #     # mask sentences with rule
+        #     masks += (1 - masks.max(-1)[0]).unsqueeze(-1).expand_as(masks)
+        masks = F.softmax(masks.float(), dim=-1)
+
         inputs = self.Embedding(sentences)
         queries = self.Embedding(keywords)
-        documents, word_attn = self.word_rnn(inputs, queries)
+
+        documents, word_attn = self.word_rnn(inputs, queries, masks)
         outputs, sentence_attn = self.sentence_rnn(documents, poses)
         # outputs = self.fc(outputs)
         s_c = torch.cat((documents, outputs), dim=-1)
-        outputs = self.fc1(self.dropout1(s_c))
-        rule_outputs, sentence_attn = self.attention(s_c)
-        rule_outputs = self.fc2(self.dropout2(rule_outputs))
-        return rule_outputs, outputs, word_attn, sentence_attn
+        outputs = self.fc(self.dropout(s_c))
+        return outputs, word_attn, sentence_attn

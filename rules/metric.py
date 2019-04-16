@@ -61,5 +61,6 @@ def test_rules(data=pd.read_csv('/data/wujipeng/ec/data/han/processed_data.csv')
                     rule_label[f - 1] = 1
                 elif found[0] == 'A':
                     rule_label[f + 1] = 1
+                break
         rule_labels.append(rule_label)
     return rule_labels

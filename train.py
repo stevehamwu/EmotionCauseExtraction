@@ -95,9 +95,9 @@ class TrainSession:
         if self.config['_train.debug_level'] == 0:
             self.logger.info('Debug mode, load test data')
             if 'memnet' in self.config["_model.name"].lower():
-                self.data_dir = '/data/wujipeng/ec/data/ltp_test'
+                self.data_dir = '/data10T/data/wujipeng/ec/data/ltp_test'
             else:
-                self.data_dir = '/data/wujipeng/ec/data/test/'
+                self.data_dir = '/data10T/data/wujipeng/ec/data/test/'
 
         self.logger.info("load data for training.")
         self.train_dataset = eval(self.config["_data.class"])(train=True, data_root=self.data_dir,
@@ -127,20 +127,6 @@ class TrainSession:
         self.logger.info("build criterion.")
         self.criterion = eval(self.config["_train.criterion.class"])(
             **self.config["_train.criterion.args"].todict())
-
-        # Build optimizer
-        self.logger.info("build optimizer")
-        if not self.config.get('_train.optimizer.multi_lr') or not self.config['_train.optimizer.multi_lr']:
-            self.optimizer = eval(self.config["_train.optimizer.class"])(
-                self.model.parameters(),
-                **self.config["_train.optimizer.args"].todict())
-        elif self.config["_train.optimizer.multi_lr"]:
-            self.optimizer = eval(self.config["_train.optimizer.class"])(
-                [
-                    {'params': [para for name, para in self.model.named_parameters() if 'word' not in name]},
-                    {'params': [para for name, para in self.model.named_parameters() if 'word' in name],
-                     'lr': self.config["_train.optimizer.args.lr"] * 0.3}
-                ], **self.config["_train.optimizer.args"].todict())
 
         # Build metrics
         self.logger.info("build metrics")
@@ -206,7 +192,11 @@ class TrainSession:
         all_rule_targets = []
         for batch in self.eval_loader:
             inputs = self.eval_dataset.batch2input(batch)
-            if len(inputs) == 3:
+            if len(inputs) == 4:
+                clauses, keywords, masks, poses = inputs
+                masks = torch.from_numpy(masks).to(self.device)
+                poses = torch.from_numpy(poses).to(self.device)
+            elif len(inputs) == 3:
                 clauses, keywords, poses = inputs
                 poses = torch.from_numpy(poses).to(self.device)
             elif len(inputs) == 2:
@@ -221,7 +211,9 @@ class TrainSession:
 
             if not self.config.get("_train.multi_loss") or not self.config["_train.multi_loss"]:
                 if not self.config.get("_train.inline_loss") or not self.config["_train.inline_loss"]:
-                    if len(inputs) == 3:
+                    if len(inputs) == 4:
+                        probs, word_attn, sentence_attn = self.model(clauses, keywords, poses, masks)
+                    elif len(inputs) == 3:
                         probs, word_attn, sentence_attn = self.model(clauses, keywords, poses)
                     elif len(inputs) == 2:
                         probs = self.model(clauses, keywords)
@@ -300,12 +292,40 @@ class TrainSession:
                     for para in self.model.Embedding.parameters():
                         para.requires_grad = False
 
+            # Build optimizer
+            self.logger.info("build optimizer")
+            if not self.config.get('_train.optimizer.multi_lr') or not self.config['_train.optimizer.multi_lr']:
+                if self.config.get('_train.optimizer.embedding'):
+                    embedding_params = list(map(id, self.model.Embedding.parameters()))
+                    base_params = filter(lambda p: id(p) not in embedding_params, self.model.parameters())
+                    self.optimizer = eval(self.config["_train.optimizer.class"])([
+                        {'params': base_params},
+                        {'params': self.model.Embedding.parameters(),
+                         'lr': self.config["_train.optimizer.embedding.lr"]}],
+                        **self.config["_train.optimizer.args"].todict())
+                else:
+                    self.optimizer = eval(self.config["_train.optimizer.class"])(
+                        self.model.parameters(),
+                        **self.config["_train.optimizer.args"].todict())
+            elif self.config["_train.optimizer.multi_lr"]:
+                self.optimizer = eval(self.config["_train.optimizer.class"])(
+                    [
+                        {'params': [para for name, para in self.model.named_parameters() if
+                                    'word' not in name]},
+                        {'params': [para for name, para in self.model.named_parameters() if 'word' in name],
+                         'lr': self.config["_train.optimizer.args.lr"] * 0.3}
+                    ], **self.config["_train.optimizer.args"].todict())
+
             losses, losses1, losses2 = 0., 0., 0.
             for i, batch in enumerate(self.train_loader):
                 self.ckpt["global_count"] += 1
                 self.model.train()
                 inputs = self.train_dataset.batch2input(batch)
-                if len(inputs) == 3:
+                if len(inputs) == 4:
+                    clauses, keywords, masks, poses = inputs
+                    masks = torch.from_numpy(masks).to(self.device)
+                    poses = torch.from_numpy(poses).to(self.device)
+                elif len(inputs) == 3:
                     clauses, keywords, poses = inputs
                     poses = torch.from_numpy(poses).to(self.device)
                 elif len(inputs) == 2:
@@ -323,7 +343,9 @@ class TrainSession:
                 self.optimizer.zero_grad()
                 if not self.config.get("_train.multi_loss") or not self.config["_train.multi_loss"]:
                     if not self.config.get("_train.inline_loss") or not self.config["_train.inline_loss"]:
-                        if len(inputs) == 3:
+                        if len(inputs) == 4:
+                            outputs, word_attn, sentence_attn = self.model(clauses, keywords, poses, masks)
+                        elif len(inputs) == 3:
                             outputs, word_attn, sentence_attn = self.model(clauses, keywords, poses)
                         elif len(inputs) == 2:
                             outputs = self.model(clauses, keywords)
@@ -392,7 +414,7 @@ class TrainSession:
                 sizes.append(total)
 
                 if self.ckpt["global_count"] % self.config['_train.disp_freq'] == 0:
-                    if self.model.name == 'han_rule':
+                    if self.model.name == 'xxxhan_rule':
                         self.logger.info('E: [{:3}/{}][{:3}/{}] L: {:.2f}|{:.2f}|{:.2f} A: {:.2f} '
                                          'P: {:.2f} R: {:.2f} F: {:.2f} RF: {:.2f} N: {:.2f}'.format(
                             self.ckpt["curr_epoch"],
@@ -416,7 +438,7 @@ class TrainSession:
                                                                                           grad_norm))
                 # tensorboard
                 if self.config['_train.debug_level'] == 0:
-                    self.update_tensorboard({'train loss': loss.item(), 'train f1': f1})
+                    self.update_tensorboard({'train loss': loss.item(), 'train_roc_auc_score': auc, 'train f1': f1})
                     self.step += 1
 
                 if self.ckpt["global_count"] % self.config['_train.eval_freq'] == 0:
@@ -439,8 +461,9 @@ class TrainSession:
                     self.logger.info('Eval Ranking Recall: {:.6f}'.format(rec_ranking))
                     self.logger.info('Eval Ranking F1: {:.6f}'.format(f1_ranking))
                     self.update_stat(acc, pre, rec, f1, pre_ranking, rec_ranking, f1_ranking)
-                    self.update_tensorboard({'eval loss': loss, 'eval f1': f1, 'eval ranking f1': f1_ranking},
-                                            mode='eval')
+                    self.update_tensorboard(
+                        {'eval loss': loss, 'eval_roc_auc_score': auc, 'eval f1': f1, 'eval ranking f1': f1_ranking},
+                        mode='eval')
 
                     # check early stopping.
                     curr_eval_score = f1_ranking if self.ranking else f1
@@ -588,11 +611,11 @@ class TrainSession:
         for tag, value in info.items():
             self.tensorboardlogger.scalar_summary(tag, value, self.step + 1)
 
-        for tag, value in self.model.named_parameters():
-            if value.requires_grad:
-                tag = tag.replace('.', '/')
-                self.tensorboardlogger.histo_summary(tag, value.data.cpu().numpy(), self.step + 1)
-                # self.tensorboardlogger.histo_summary(tag + '/grad', value.grad.data.cpu().numpy(), self.step + 1)
+        # for tag, value in self.model.named_parameters():
+        #     if value.requires_grad:
+        #         tag = tag.replace('.', '/')
+        #         self.tensorboardlogger.histo_summary(tag, value.data.cpu().numpy(), self.step + 1)
+        # self.tensorboardlogger.histo_summary(tag + '/grad', value.grad.data.cpu().numpy(), self.step + 1)
 
     def save_session_config(self, file_name):
         if os.path.exists(file_name):

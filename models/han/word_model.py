@@ -9,7 +9,7 @@
 import pickle
 import torch
 import torch.nn as nn
-from .attention import BertSingleAttention
+from .attention import *
 
 
 class WordAttention(nn.Module):
@@ -20,8 +20,14 @@ class WordAttention(nn.Module):
                  sequence_length,
                  rnn_size,
                  rnn_layers,
+                 attention=None,
                  dropout=0.5):
         super(WordAttention, self).__init__()
+        if attention is None:
+            attention = {
+                'class': 'BertSingleAttention',
+                'args': {}
+            }
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.batch_size = batch_size
@@ -36,7 +42,7 @@ class WordAttention(nn.Module):
             bidirectional=True,
             batch_first=True,
             dropout=dropout)
-        self.attention = BertSingleAttention()
+        self.attention = eval(attention['class'])(**attention['args'])
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, sentences, keywords):
@@ -180,3 +186,48 @@ class BiGRU(nn.Module):
         values = x.sum(dim=1).view(self.batch_size, -1, 2 * self.rnn_size)
 
         return values, None
+
+
+class WordAttentionRule(nn.Module):
+    def __init__(self,
+                 vocab_size,
+                 embedding_dim,
+                 batch_size,
+                 sequence_length,
+                 rnn_size,
+                 rnn_layers,
+                 attention='BertSingleAttention',
+                 dropout=0.5):
+        super(WordAttentionRule, self).__init__()
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+        self.batch_size = batch_size
+        self.sequence_length = sequence_length
+        self.rnn_size = rnn_size
+        self.rnn_layers = rnn_layers
+
+        self.gru = nn.GRU(
+            embedding_dim,
+            rnn_size,
+            num_layers=rnn_layers,
+            bidirectional=True,
+            batch_first=True,
+            dropout=dropout)
+        self.attention = eval(attention)()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, sentences, keywords, rule_mask):
+        x = sentences.view(-1, self.sequence_length, self.embedding_dim)
+        x, _ = self.gru(x)
+        q, _ = self.gru(keywords)
+        x = x.view(self.batch_size, -1, self.sequence_length, 2*self.rnn_size)
+        q = q.unsqueeze(1).expand_as(x)
+
+        x *= rule_mask.unsqueeze(-1).expand_as(x)
+        mask = torch.matmul(keywords.unsqueeze(1).expand_as(sentences), sentences.transpose(-2, -1)) != 0
+        values, word_attn = self.attention(q, x, x, mask=mask, dropout=self.dropout)
+
+        values = values.sum(dim=2)
+        word_attn = word_attn.sum(dim=2)
+
+        return values, word_attn

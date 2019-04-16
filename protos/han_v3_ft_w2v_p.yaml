@@ -1,14 +1,14 @@
 _data :
   data_root: /data10T/data/wujipeng/ec/data/static/
-  class: utils.dataset.rule.ECRuleDataset
+  class: utils.dataset.ec.ECDataset
   settings:
     vocab_root: /data10T/data/wujipeng/ec/data/raw_data
     batch_size: 16
 
 _model :
   model_root : /data10T/data/wujipeng/ec/model/
-  name : han_rule
-  class: models.han.han_rule.HierarchicalAttentionNetworkRule
+  name : han_v3_ft_w2v_p
+  class: models.han.han.HierarchicalAttentionNetworkV3
   settings :
     word_model:
       class: WordAttention
@@ -28,8 +28,8 @@ _model :
         rnn_size: 300
         rnn_layers: 2
         pos_size: 103
-        pos_embedding_dim: 100
-        pos_embedding_file: /data10T/data/wujipeng/ec/data/embedding/pos_embedding100d.pkl
+        pos_embedding_dim: 300
+        pos_embedding_file: /data10T/data/wujipeng/ec/data/embedding/pos_embedding.pkl
         dropout: 0.5
         fix_pos: False
     vocab_size: 23070
@@ -61,6 +61,8 @@ _train :
   max_epoch : 100
   batch_size : 16
   early_stopping_rounds : 10
+#  decay_round: 3
+#  decay_rate: 0.5
   disp_freq : 15
   eval_freq : 119
   save_freq : 119
@@ -88,5 +90,3 @@ _eval :
       ignore_index: -100
   statistics:
     class: statistics.ec.ec.ECStatistics
-# 10 times f1:0.775506 f1_ranking:0.762726
-# 25 times f1:0.771205 f1_ranking:0.769164

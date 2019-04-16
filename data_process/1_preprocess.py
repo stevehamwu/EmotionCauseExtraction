@@ -32,7 +32,7 @@ def hanlp_cut(sentence):
     return words, natures
 
 
-# def build_corpus(raw_corpus):
+# def load_corpus(raw_corpus):
 #     print('开始分词...')    #  Hanlp分词
 #
 #     corpus = []
@@ -143,7 +143,7 @@ def preprocess():
     keyword = [' '.join(hanlp_cut(e)[0]) for e in data['keyword'].tolist()]
     poses = [list(map(int, pos.split(' '))) for pos in data['clause_pos'].tolist()]
 
-    # corpus = build_corpus(corpus)
+    # corpus = load_corpus(corpus)
     corpus, natures = build_corpus(corpus)
     vocab = build_vocab(corpus + keyword)
     build_embedding(vocab)

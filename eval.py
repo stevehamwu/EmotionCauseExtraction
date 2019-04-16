@@ -79,7 +79,7 @@ class EvalSession:
 
         if self.config['_eval.debug_level'] == 0:
             self.logger.info('Debug mode, load test data')
-            self.data_dir = '/data/wujipeng/ec/data/test/'
+            self.data_dir = '/data10T/data/wujipeng/ec/data/test/'
 
         self.logger.info("load data for training.")
         self.train_dataset = eval(self.config["_data.class"])(train=True, data_root=self.data_dir,

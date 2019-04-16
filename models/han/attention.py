@@ -14,7 +14,7 @@ import torch.nn.functional as F
 
 class BertSingleAttention(nn.Module):
     """
-    Compute 'Scaled Dot Product BertSingleAttention
+    Compute 'Scaled Dot Product BertSingleAttention'
     """
 
     def forward(self, query, key, value, mask=None, dropout=None):
@@ -66,70 +66,38 @@ class MultiHeadedAttention(nn.Module):
         return self.output_linear(x)
 
 
-def batch_matmul_bias(seq, weight, bias, nonlinearity=''):
-    s = None
-    bias_dim = bias.size()
-    for i in range(seq.size(0)):
-        _s = torch.mm(seq[i], weight)
-        _s_bias = _s + bias.expand(bias_dim[0], _s.size()[0]).transpose(0,1)
-        if(nonlinearity=='tanh'):
-            _s_bias = torch.tanh(_s_bias)
-        _s_bias = _s_bias.unsqueeze(0)
-        if(s is None):
-            s = _s_bias
-        else:
-            s = torch.cat((s,_s_bias),0)
-    return s.squeeze()
-
-
-def batch_matmul(seq, weight, nonlinearity=''):
-    s = None
-    for i in range(seq.size(0)):
-        _s = torch.mm(seq[i], weight)
-        if(nonlinearity=='tanh'):
-            _s = torch.tanh(_s)
-        _s = _s.unsqueeze(0)
-        if(s is None):
-            s = _s
-        else:
-            s = torch.cat((s,_s),0)
-    return s.squeeze()
-
-
-def attention_mul(rnn_outputs, att_weights):
-    attn_vectors = None
-    for i in range(rnn_outputs.size(0)):
-        h_i = rnn_outputs[i]
-        a_i = att_weights[i].unsqueeze(1).expand_as(h_i)
-        h_i = a_i * h_i
-        h_i = h_i.unsqueeze(0)
-        if(attn_vectors is None):
-            attn_vectors = h_i
-        else:
-            attn_vectors = torch.cat((attn_vectors,h_i),0)
-    return torch.sum(attn_vectors, 0)
-
-
-class NonLinearAttention(nn.Module):
+class GeneralAttention(nn.Module):
     """
-    Compute 'Scaled Dot Product BertSingleAttention
+    Compute 'Scaled General Product BertSingleAttention'
     """
 
     def __init__(self, hidden_size):
-        super(NonLinearAttention, self).__init__()
-        self.weight_W = nn.Parameter(torch.Tensor(2 * hidden_size, 2 * hidden_size))
-        self.bias = nn.Parameter(torch.Tensor(2 * hidden_size, 1))
-        self.weight_proj = nn.Parameter(torch.Tensor(2 * hidden_size, 1))
-        self.init_weights()
+        super(GeneralAttention, self).__init__()
+        self.linear = nn.Linear(2 * hidden_size, 2 * hidden_size)
 
-    def init_weights(self):
-        nn.init.uniform_(self.weight_W, -0.1, 0.1)
-        nn.init.uniform_(self.weight_proj, -0.1, 0.1)
+    def forward(self, query, key, value, mask=None, dropout=None):
+        scores = torch.matmul(self.linear(query), key.transpose(-2, -1)) / math.sqrt(query.size(-1))
 
-    def forward(self, inputs, mask=None, dropout=None):
-        squish = batch_matmul_bias(inputs, self.weight_W, self.bias, nonlinearity='tanh')
-        attn = batch_matmul(squish, self.weight_proj)
-        attn_norm = F.softmax(attn, dim=-1)
-        attn_vectors = attention_mul(inputs.transpose(0, 1), attn_norm.transpose(0, 1))
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, -1e9)
 
-        return attn_vectors, attn_norm
+        p_attn = F.softmax(scores, dim=-1)
+
+        if dropout is not None:
+            p_attn = dropout(p_attn)
+
+        return torch.matmul(p_attn, value), p_attn
+
+
+class ConcatAttention(nn.Module):
+    """
+    Compute 'Scaled Concat Product BertSingleAttention'
+    """
+
+    def __init__(self, hidden_size):
+        super(ConcatAttention, self).__init__()
+        self.linear = nn.Linear(2 * 2 * hidden_size, 2 * hidden_size)
+        self.proj = nn.Linear(2 * hidden_size, 1)
+
+    def forward(self, query, key, value, mask=None, dropout=None):
+        concat = self.linear(torch.cat([query, key], dim=-1)).tanh()

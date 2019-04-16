@@ -4,14 +4,15 @@ _data :
   settings:
     vocab_root: /data10T/data/wujipeng/ec/data/raw_data
     batch_size: 16
+    rule: 1
 
 _model :
   model_root : /data10T/data/wujipeng/ec/model/
-  name : han_rule
+  name : han_rule1
   class: models.han.han_rule.HierarchicalAttentionNetworkRule
   settings :
     word_model:
-      class: WordAttention
+      class: WordAttentionRule
       args:
         vocab_size: 23070
         embedding_dim: 300
